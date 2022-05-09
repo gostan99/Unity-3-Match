@@ -14,6 +14,8 @@ public class Grid : MonoBehaviour
     [SerializeField] private int _rows;
 
     [Header("Cell Settings")]
+    [SerializeField] private Sprite[] _cellSprites;
+
     [SerializeField] private Vector2 _cellDimension;
 
     [SerializeField] private float _swapDuration;
@@ -46,12 +48,19 @@ public class Grid : MonoBehaviour
         if (hit)
         {
             if (_selectedCell != null && AreNeighbors(_selectedCell, hit.transform.gameObject))
+            {
                 SwapCell(_selectedCell, hit.transform.gameObject);
+                _selectedCell = null;
+            }
             else
                 _selectedCell = hit.transform.gameObject;
         }
         else
             _selectedCell = null;
+    }
+
+    private void OnCellEmpty(GameObject cell)
+    {
     }
 
     private void SwapCell(GameObject cellA, GameObject cellB)
@@ -88,6 +97,7 @@ public class Grid : MonoBehaviour
         Debug.Assert(_cellDimension.x > 0 && _rows > 0, "Grid: Width and height of cell need to be greater than 0.");
         Debug.Assert(_cellBackground, "Grid: Cell background sprite is none!");
         Debug.Assert(_cellBackgroundColors.Length > 0, "Grid: Cell background colors are none!");
+        Debug.Assert(_cellSprites.Length > 0, "Grid: Cell sprites are none!");
 #if DEBUG
         if (_cellBackgroundColors.Length > 0)
             foreach (var color in _cellBackgroundColors)
@@ -109,16 +119,25 @@ public class Grid : MonoBehaviour
                 cell.name = "Cell" + (_cellsList.Count - 1);
                 var collider = cell.AddComponent<BoxCollider2D>(); // for Raycast2D
                 collider.size = _cellDimension;
-                cell.AddComponent<SpriteRenderer>();
+                var cellRenderer = cell.AddComponent<SpriteRenderer>();
+                cellRenderer.sortingOrder = 1;
+                cellRenderer.sprite = GetRandomCellSprite();
 
                 // Instantiate cell background
                 var cellBackground = new GameObject();
                 cellBackground.transform.position = cellPos;
-                var renderer = cellBackground.AddComponent<SpriteRenderer>();
-                renderer.sprite = _cellBackground;
-                renderer.color = _cellBackgroundColors[colorIndex++ % _cellBackgroundColors.Length];
+                var bgRenderer = cellBackground.AddComponent<SpriteRenderer>();
+                bgRenderer.sortingOrder = 0;
+                bgRenderer.sprite = _cellBackground;
+                bgRenderer.color = _cellBackgroundColors[colorIndex++ % _cellBackgroundColors.Length];
             }
             colorIndex++;
         }
+    }
+
+    private Sprite GetRandomCellSprite()
+    {
+        int index = Random.Range(0, _cellSprites.Length);
+        return _cellSprites[index];
     }
 }

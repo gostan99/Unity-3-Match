@@ -49,6 +49,12 @@ MonoBehaviour:
   - {r: 0.19215688, g: 0.19215688, b: 0.16470589, a: 1}
   _columns: 8
   _rows: 8
+  _cellSprites:
+  - {fileID: 21300000, guid: 109da5e91b5b9224f9c88e05a9cbe558, type: 3}
+  - {fileID: 21300000, guid: fc31e69db0e8e72448f14f49c9ac46ca, type: 3}
+  - {fileID: 21300000, guid: 0c0f8849a7547b448887dac0fccba618, type: 3}
+  - {fileID: 21300000, guid: 8c1503ec09a87814fa20ccbfe29ed7af, type: 3}
+  - {fileID: 21300000, guid: 9ed241f01639a884b9ee747b0396c193, type: 3}
   _cellDimension: {x: 0.32, y: 0.32}
   _swapDuration: 0.2
   _fallDuration: 0
