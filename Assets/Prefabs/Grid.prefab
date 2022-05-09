@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 1490717376039500008}
   - component: {fileID: 1490717376039500009}
   m_Layer: 0
-  m_Name: Board
+  m_Name: Grid
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -44,9 +44,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _cellBackground: {fileID: 21300000, guid: 955604d9e8acb9e4787ef8e139e7117b, type: 3}
-  _cellBgColors:
+  _cellBackgroundColors:
   - {r: 0.29803923, g: 0.29803923, b: 0.21960786, a: 1}
   - {r: 0.19215688, g: 0.19215688, b: 0.16470589, a: 1}
   _columns: 8
   _rows: 8
   _cellDimension: {x: 0.32, y: 0.32}
+  _swapDuration: 0.2
+  _fallDuration: 0

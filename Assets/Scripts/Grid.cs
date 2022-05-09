@@ -12,7 +12,12 @@ public class Grid : MonoBehaviour
 
     [SerializeField] private int _columns;
     [SerializeField] private int _rows;
+
+    [Header("Cell Settings")]
     [SerializeField] private Vector2 _cellDimension;
+
+    [SerializeField] private float _swapDuration;
+    [SerializeField] private float _fallDuration;
 
     private GameObject _selectedCell;
     private List<GameObject> _cellsList = new List<GameObject>();
@@ -40,28 +45,25 @@ public class Grid : MonoBehaviour
         var hit = Physics2D.Raycast(mouseRay.origin, mouseRay.direction, Vector2.Distance(transform.position, mouseRay.origin));
         if (hit)
         {
-            if (_selectedCell != null)
-            {
-                TrySwapCell(_selectedCell, hit.transform.gameObject);
-            }
+            if (_selectedCell != null && AreNeighbors(_selectedCell, hit.transform.gameObject))
+                SwapCell(_selectedCell, hit.transform.gameObject);
             else
                 _selectedCell = hit.transform.gameObject;
         }
         else
-        {
             _selectedCell = null;
-        }
     }
 
-    private bool TrySwapCell(GameObject cellA, GameObject cellB)
+    private void SwapCell(GameObject cellA, GameObject cellB)
     {
-        if (!AreNeighbors(cellA, cellB)) return false;
+        var cellBPos = cellB.transform.position;
+        LeanTween.move(cellB, cellA.transform.position, _swapDuration);
+        LeanTween.move(cellA, cellBPos, _swapDuration);
 
-        // TODO: swap
-        return true;
-        //var cellBPos = cellB.transform.position;
-        //cellB.transform.position = cellA.transform.position;
-        //cellA.transform.position = cellBPos;
+        int indexA = _cellsList.IndexOf(cellA);
+        int indexB = _cellsList.IndexOf(cellB);
+        _cellsList[indexA] = cellB;
+        _cellsList[indexB] = cellA;
     }
 
     // return true if cellA and cellB are neighbors to each other
@@ -105,7 +107,9 @@ public class Grid : MonoBehaviour
                 var cellPos = new Vector3(transform.position.x + _cellDimension.x * col, transform.position.y + _cellDimension.y * row, transform.position.z);
                 cell.transform.position = cellPos;
                 cell.name = "Cell" + (_cellsList.Count - 1);
-                cell.AddComponent<BoxCollider2D>(); // for Raycast2D
+                var collider = cell.AddComponent<BoxCollider2D>(); // for Raycast2D
+                collider.size = _cellDimension;
+                cell.AddComponent<SpriteRenderer>();
 
                 // Instantiate cell background
                 var cellBackground = new GameObject();
