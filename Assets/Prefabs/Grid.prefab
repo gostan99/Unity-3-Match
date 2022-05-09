@@ -58,3 +58,5 @@ MonoBehaviour:
   _cellDimension: {x: 0.32, y: 0.32}
   _swapDuration: 0.2
   _fallDuration: 0
+  _fadeFrom: 0.3
+  _fadeDuration: 0.18

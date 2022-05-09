@@ -20,6 +20,11 @@ public class Grid : MonoBehaviour
 
     [SerializeField] private float _swapDuration;
     [SerializeField] private float _fallDuration;
+    [SerializeField] private float _fadeFrom = 0.3f;
+    [SerializeField] private float _fadeDuration;
+
+    private float _cellSpriteAlpha = 1;
+    private int _leanTweenFadeEffectID;
 
     private GameObject _selectedCell;
     private List<GameObject> _cellsList = new List<GameObject>();
@@ -28,6 +33,7 @@ public class Grid : MonoBehaviour
     private void Awake()
     {
         GenerateCells();
+        _leanTweenFadeEffectID = LeanTween.value(_fadeFrom, _cellSpriteAlpha, _fadeDuration).setOnUpdate(CellSpriteFadingEffect).setLoopPingPong().id;
     }
 
     // Update is called once per frame
@@ -50,13 +56,37 @@ public class Grid : MonoBehaviour
             if (_selectedCell != null && AreNeighbors(_selectedCell, hit.transform.gameObject))
             {
                 SwapCell(_selectedCell, hit.transform.gameObject);
+                LeanTween.pause(_leanTweenFadeEffectID);
+                ResetCellSpriteAlpha(_selectedCell);
                 _selectedCell = null;
             }
             else
+            {
                 _selectedCell = hit.transform.gameObject;
+                LeanTween.resume(_leanTweenFadeEffectID);
+            }
         }
         else
+        {
+            LeanTween.pause(_leanTweenFadeEffectID);
+            ResetCellSpriteAlpha(_selectedCell);
             _selectedCell = null;
+        }
+    }
+
+    private void CellSpriteFadingEffect(float val)
+    {
+        if (_selectedCell is null) return;
+        var renderer = _selectedCell.GetComponent<SpriteRenderer>();
+        var color = renderer.color;
+        renderer.color = new Color(color.r, color.g, color.b, val);
+    }
+
+    private void ResetCellSpriteAlpha(GameObject cell)
+    {
+        var renderer = cell.GetComponent<SpriteRenderer>();
+        var color = renderer.color;
+        renderer.color = new Color(color.r, color.g, color.b, _cellSpriteAlpha);
     }
 
     private void OnCellEmpty(GameObject cell)
@@ -66,6 +96,7 @@ public class Grid : MonoBehaviour
     private void SwapCell(GameObject cellA, GameObject cellB)
     {
         var cellBPos = cellB.transform.position;
+        // Swap animation
         LeanTween.move(cellB, cellA.transform.position, _swapDuration);
         LeanTween.move(cellA, cellBPos, _swapDuration);
 
