@@ -42,7 +42,16 @@ public class GameManager : MonoBehaviour
     private void Awake()
     {
         GenerateCellsAndCellBackgrounds();
-        _leanTweenFadingEffectID = LeanTween.value(_fadeFrom, _cellSpriteAlpha, _fadeDuration).setOnUpdate(CellSpriteFadingEffect).setLoopPingPong().id;
+
+        // setup cell sprite fading effect
+        System.Action<float> cellSpriteFadingEffect = val =>
+        {
+            if (!_selectedCell) return;
+            var renderer = _selectedCell.GetComponent<SpriteRenderer>();
+            var color = renderer.color;
+            renderer.color = new Color(color.r, color.g, color.b, val);
+        };
+        _leanTweenFadingEffectID = LeanTween.value(_fadeFrom, _cellSpriteAlpha, _fadeDuration).setOnUpdate(cellSpriteFadingEffect).setLoopPingPong().id;
     }
 
     // Update is called once per frame
@@ -59,7 +68,8 @@ public class GameManager : MonoBehaviour
     private void OnClick()
     {
         var mouseRay = Camera.main.ScreenPointToRay(Input.mousePosition);
-        var hit = Physics2D.Raycast(mouseRay.origin, mouseRay.direction, Vector2.Distance(transform.position, mouseRay.origin));
+        int layer = LayerMask.NameToLayer("Cell");
+        var hit = Physics2D.Raycast(mouseRay.origin, mouseRay.direction, Vector2.Distance(transform.position, mouseRay.origin), ~layer); // ~layer mean we ignore all other layer except Cell layer
         if (!hit)
         {
             if (_selectedCell)
@@ -70,10 +80,17 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        if (!_selectedCell && hit.transform.tag == "Cell")
+        if (!_selectedCell)
         {
             _selectedCell = hit.transform.gameObject;
             LeanTween.resume(_leanTweenFadingEffectID);
+            return;
+        }
+
+        if (_selectedCell == hit.transform.gameObject)
+        {
+            StopSelectedCellSpriteFadingEffect();
+            _selectedCell = null;
             return;
         }
 
@@ -85,21 +102,87 @@ public class GameManager : MonoBehaviour
         }
 
         SwapCell(_selectedCell, hit.transform.gameObject);
-        if (TryExplode())
+        if (TryExplode(out var explodedObjList))
         {
-            FallDownToFillUpEmtySpace();
+            FallDownToFillUpEmtySpace(explodedObjList);
         }
         StopSelectedCellSpriteFadingEffect();
         _selectedCell = null;
     }
 
     // Perform explosion if can and return true otherwise return false
-    private bool TryExplode()
+    private bool TryExplode(out List<GameObject> explodedObjList)
     {
+        explodedObjList = new List<GameObject>();
+
+        var selectedCellSprite = _selectedCell.GetComponent<SpriteRenderer>().sprite;
+        int index = _cellsList.IndexOf(_selectedCell);
+        int temp = index;
+
+        // Up
+        while ((temp -= _columns) >= 0)
+        {
+            var sprite = _cellsList[temp].GetComponent<SpriteRenderer>().sprite;
+            if (sprite != selectedCellSprite)
+                break;
+            explodedObjList.Add(_cellsList[temp]);
+        }
+
+        explodedObjList.Add(_selectedCell);
+        temp = index;
+        // Down
+        while ((temp += _columns) < _cellsList.Count)
+        {
+            var sprite = _cellsList[temp].GetComponent<SpriteRenderer>().sprite;
+            if (sprite != selectedCellSprite)
+                break;
+            explodedObjList.Add(_cellsList[temp]);
+        }
+
+        // Explode
+        if (explodedObjList.Count >= 3)
+        {
+            foreach (var cell in explodedObjList)
+            {
+                cell.GetComponent<SpriteRenderer>().sprite = null;
+            }
+        }
+        int count = explodedObjList.Count;
+
+        temp = index;
+        // Left
+        while (--temp >= 0)
+        {
+            var sprite = _cellsList[temp].GetComponent<SpriteRenderer>().sprite;
+            if (sprite != selectedCellSprite)
+                break;
+            explodedObjList.Add(_cellsList[temp]);
+        }
+        explodedObjList.Add(_selectedCell);
+
+        temp = index;
+        // Right
+        while (++temp < _cellsList.Count)
+        {
+            var sprite = _cellsList[temp].GetComponent<SpriteRenderer>().sprite;
+            if (sprite != selectedCellSprite)
+                break;
+            explodedObjList.Add(_cellsList[temp]);
+        }
+
+        // Explode
+        if (explodedObjList.Count - count >= 3)
+        {
+            foreach (var cell in explodedObjList)
+            {
+                cell.GetComponent<SpriteRenderer>().sprite = null;
+            }
+        }
+
         return true;
     }
 
-    private void FallDownToFillUpEmtySpace()
+    private void FallDownToFillUpEmtySpace(List<GameObject> emptyCellsList)
     {
     }
 
@@ -109,23 +192,11 @@ public class GameManager : MonoBehaviour
         ResetSelectedCellSpriteAlpha();
     }
 
-    private void CellSpriteFadingEffect(float val)
-    {
-        if (!_selectedCell) return;
-        var renderer = _selectedCell.GetComponent<SpriteRenderer>();
-        var color = renderer.color;
-        renderer.color = new Color(color.r, color.g, color.b, val);
-    }
-
     private void ResetSelectedCellSpriteAlpha()
     {
         var renderer = _selectedCell.GetComponent<SpriteRenderer>();
         var color = renderer.color;
         renderer.color = new Color(color.r, color.g, color.b, _cellSpriteAlpha);
-    }
-
-    private void OnCellEmpty(GameObject cell)
-    {
     }
 
     private void SwapCell(GameObject cellA, GameObject cellB)
@@ -183,7 +254,7 @@ public class GameManager : MonoBehaviour
                 var cellRenderer = cell.AddComponent<SpriteRenderer>();
                 var cellPos = new Vector3(transform.position.x + _cellDimension.x * col, transform.position.y + _cellDimension.y * row, transform.position.z);
                 cell.transform.position = cellPos;
-                cell.tag = "Cell";
+                cell.layer = LayerMask.NameToLayer("Cell"); // for raycasting
                 collider.size = _cellDimension;
                 cellRenderer.sortingOrder = 1;
                 cellRenderer.sprite = GetRandomCellSprite();
