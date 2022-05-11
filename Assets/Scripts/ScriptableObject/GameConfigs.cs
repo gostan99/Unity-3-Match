@@ -42,4 +42,5 @@ public class GameConfigs : ScriptableObject
     public Vector2 CellDimension => _cellDimension;
     public string CellLayer => _cellLayer;
     public float CellMoveSpeed => _cellMoveSpeed;
+    public int NumCell => _columns * _rows;
 }

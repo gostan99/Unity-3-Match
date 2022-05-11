@@ -44,4 +44,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _cellsList: {fileID: 11400000, guid: cf7fef638bc802d46a377748235ed2a8, type: 2}
+  _cellSpawnPositions: {fileID: 11400000, guid: 216e6a2560dd34b47b518daa5e9b7ffd,
+    type: 2}
   _gameConfigs: {fileID: 11400000, guid: b7f3af89663b9a843b928b5247e735bc, type: 2}
