@@ -14,6 +14,7 @@ public class SelectedCellFadeEffect : ScriptableObject
     [SerializeField] private float _duration;
 
     private int _leanId;
+    private GameObject _selectedCell;
 
     private void OnEnable()
     {
@@ -21,8 +22,8 @@ public class SelectedCellFadeEffect : ScriptableObject
 
     public void OnSelectCell()
     {
-        var cell = _cellsList.Value[_cellIndex.Value];
-        var render = cell.GetComponent<SpriteRenderer>();
+        _selectedCell = _cellsList.Value[_cellIndex.Value];
+        var render = _selectedCell.GetComponent<SpriteRenderer>();
         var color = render.color;
 
         _leanId = LeanTween.value(_fadeFrom, 1f, _duration).setOnUpdate((float val) =>
@@ -34,8 +35,7 @@ public class SelectedCellFadeEffect : ScriptableObject
     public void OnDeselectCell()
     {
         LeanTween.cancel(_leanId);
-        var cell = _cellsList.Value[_cellIndex.Value];
-        var render = cell.GetComponent<SpriteRenderer>();
+        var render = _selectedCell.GetComponent<SpriteRenderer>();
         var color = render.color;
         render.color = new Color(color.r, color.g, color.b, 1);
     }

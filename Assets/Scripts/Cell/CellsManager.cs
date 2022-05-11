@@ -10,7 +10,7 @@ public class CellsManager : Singleton<CellsManager>
     public UnityEvent OnDeselectCell = new UnityEvent();
     public UnityEvent OnCellSwapped = new UnityEvent();
 
-    [SerializeField] private ListGameObjectVariable _cellsList;
+    [SerializeField] private ListGameObjectVariable _cellsList; // sometime we will have to treat this list as 2d list
     [SerializeField] private IntVariable _clickedCellIndex; // Clicked cell index
     [SerializeField] private GameConfigs _gameConfigs;
 
@@ -52,6 +52,7 @@ public class CellsManager : Singleton<CellsManager>
 
         int newClickedCellIndex = _cellsList.Value.IndexOf(hit.transform.gameObject);
 
+        // player haven't selected any cell
         if (_clickedCellIndex.Value == -1)
         {
             _clickedCellIndex.Value = newClickedCellIndex;
@@ -60,6 +61,7 @@ public class CellsManager : Singleton<CellsManager>
             return;
         }
 
+        // play selected the same cell they have selected in previous
         if (_clickedCellIndex.Value == newClickedCellIndex)
         {
             //StopSelectedCellSpriteFadingEffect();
@@ -68,6 +70,7 @@ public class CellsManager : Singleton<CellsManager>
             return;
         }
 
+        // the cell player just select is the same as previous selected cell
         if (!AreNeighbors(_clickedCellIndex.Value, newClickedCellIndex))
         {
             OnDeselectCell?.Invoke();
@@ -76,8 +79,12 @@ public class CellsManager : Singleton<CellsManager>
             return;
         }
 
+        var oldSelectedCell = _cellsList.Value[_clickedCellIndex.Value];
+        var newSelectedCell = _cellsList.Value[newClickedCellIndex];
+        _clickedCellIndex.Value = -1;
+        // raise this event before swapping because we don't want the selected cell to fade while swapping
         OnDeselectCell?.Invoke();
-        SwapCell(_cellsList.Value[_clickedCellIndex.Value], _cellsList.Value[newClickedCellIndex]);
+        SwapCell(oldSelectedCell, newSelectedCell);
     }
 
     private void SwapCellIndex(GameObject cellA, GameObject cellB)
@@ -95,7 +102,6 @@ public class CellsManager : Singleton<CellsManager>
         LeanTween.move(cellB, cellA.transform.position, duration).setOnComplete(() =>
         {
             SwapCellIndex(cellA, cellB);
-            _clickedCellIndex.Value = -1;
             if (raiseEventOnFinished)
             {
                 _movedCellsList.Add(cellA);
