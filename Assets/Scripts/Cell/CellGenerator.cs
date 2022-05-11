@@ -5,14 +5,12 @@ using UnityEngine;
 public class CellGenerator : Singleton<CellGenerator>
 {
     [SerializeField] private ListGameObjectVariable _cellsList;
-    [SerializeField] private ListGameObjectVariable _cellSpawnPositions;
     [SerializeField] private GameConfigs _gameConfigs;
 
     protected override void Awake()
     {
         base.Awake();
         _cellsList.Value.Clear();
-        _cellSpawnPositions.Value.Clear();
         Generate();
     }
 
@@ -61,11 +59,6 @@ public class CellGenerator : Singleton<CellGenerator>
                     bgRenderer.sortingOrder = 0;
                     bgRenderer.sprite = _gameConfigs.CellBackground;
                     bgRenderer.color = _gameConfigs.CellBackgroundColors[colorIndex++ % _gameConfigs.CellBackgroundColors.Length];
-
-                    var spawnPos = new GameObject();
-                    _cellSpawnPositions.Value.Add(spawnPos);
-                    spawnPos.name = "SpawnPostion" + (_cellSpawnPositions.Value.Count - 1);
-                    spawnPos.transform.position = cellPos + _gameConfigs.Rows * _gameConfigs.CellDimension.y * Vector3.up;
                 }
                 else
                 {

@@ -75,7 +75,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 443633421577490528}
-        m_MethodName: OnCellSwappedResponse
+        m_MethodName: OnCellMovedResponse
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

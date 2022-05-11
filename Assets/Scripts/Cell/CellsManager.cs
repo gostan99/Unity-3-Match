@@ -12,11 +12,10 @@ public class CellsManager : Singleton<CellsManager>
     public UnityEvent OnCellExplode = new UnityEvent();
 
     [SerializeField] private ListGameObjectVariable _cellsList;
-    [SerializeField] private ListGameObjectVariable _cellSpawnPositions;
     [SerializeField] private IntVariable _clickedCellIndex; // Clicked cell index
     [SerializeField] private GameConfigs _gameConfigs;
 
-    private List<GameObject> _swappedCells = new List<GameObject>();
+    private List<GameObject> _movedCells = new List<GameObject>();
 
     // Start is called before the first frame update
     protected override void Awake()
@@ -113,36 +112,36 @@ public class CellsManager : Singleton<CellsManager>
     public void SwapCell(GameObject cellA, GameObject cellB, bool raiseEventOnFinished = true)
     {
         var duration = Vector2.Distance(cellA.transform.position, cellB.transform.position) / _gameConfigs.CellMoveSpeed;
-        LeanTween.move(cellA, cellB.transform.position, duration);
-        LeanTween.move(cellB, cellA.transform.position, duration).setOnComplete(() =>
+        LeanTween.move(cellA, cellB.transform.position, duration).setEase(LeanTweenType.easeInCubic);
+        LeanTween.move(cellB, cellA.transform.position, duration).setEase(LeanTweenType.easeInCubic).setOnComplete(() =>
         {
             SwapCellIndex(cellA, cellB);
             if (raiseEventOnFinished)
             {
-                _swappedCells.Add(cellA);
-                _swappedCells.Add(cellB);
+                _movedCells.Add(cellA);
+                _movedCells.Add(cellB);
                 OnCellSwapped?.Invoke();
             }
         });
     }
 
-    public void OnCellSwappedResponse()
+    public void OnCellMovedResponse()
     {
         var matchedCellIndices = new List<int>();
-        foreach (var cell in _swappedCells)
+        foreach (var cell in _movedCells)
         {
             var list = GetMatchedCellIndices(cell);
             matchedCellIndices.AddRange(list);
         }
         if (matchedCellIndices.Count < 3)
-            SwapCell(_swappedCells[0], _swappedCells[1], false); // Undo swap
+            SwapCell(_movedCells[0], _movedCells[1], false); // Undo swap
         else
         {
             Explode(matchedCellIndices);
             //OnCellExplode?.Invoke();
             Colapse(matchedCellIndices);
         }
-        _swappedCells.Clear();
+        _movedCells.Clear();
     }
 
     private void Colapse(List<int> indicies)
