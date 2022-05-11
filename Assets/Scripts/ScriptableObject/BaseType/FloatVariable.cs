@@ -1,13 +1,15 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 [CreateAssetMenu(menuName = "ScriptableObject/Float Variable")]
 public class FloatVariable : ScriptableObject
 {
-    [SerializeField] GameEvent OnValueChange;
+    [SerializeField] private UnityEvent OnValueChange;
 
-    [SerializeField] float _value;
+    [SerializeField] private float _value;
+
     public float Value
     {
         get { return _value; }
@@ -15,8 +17,7 @@ public class FloatVariable : ScriptableObject
         {
             _value = value;
 
-            if (OnValueChange != null) OnValueChange.Raise();
+            OnValueChange?.Invoke();
         }
     }
-
 }

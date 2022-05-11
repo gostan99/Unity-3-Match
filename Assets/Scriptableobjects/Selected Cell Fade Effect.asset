@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d70651d1bc4b38438be035c0bb93d0b, type: 3}
+  m_Name: Selected Cell Fade Effect
+  m_EditorClassIdentifier: 
+  _cellsList: {fileID: 11400000, guid: cf7fef638bc802d46a377748235ed2a8, type: 2}
+  _cellIndex: {fileID: 11400000, guid: 658eca86b99ecfd47b9b3c8df44e9f88, type: 2}
+  _fadeFrom: 0.35
+  _duration: 0.25

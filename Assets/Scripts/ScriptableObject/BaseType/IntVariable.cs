@@ -2,11 +2,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity;
+using UnityEngine.Events;
 
 [CreateAssetMenu(menuName = "ScriptableObject/Int Variable")]
 public class IntVariable : ScriptableObject
 {
-    [SerializeField] private GameEvent OnValueChange;
+    [SerializeField] private UnityEvent OnValueChange;
 
     [SerializeField] private int _value;
 
@@ -17,7 +18,7 @@ public class IntVariable : ScriptableObject
         {
             _value = value;
 
-            if (OnValueChange != null) OnValueChange.Raise();
+            OnValueChange?.Invoke();
         }
     }
 }
