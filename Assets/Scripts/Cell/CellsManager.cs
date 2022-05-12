@@ -1,33 +1,37 @@
-﻿using System;
+﻿using DG.Tweening;
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 
 public class CellsManager : Singleton<CellsManager>
 {
-    public UnityEvent OnSelectCell = new UnityEvent();
-    public UnityEvent OnDeselectCell = new UnityEvent();
-    public UnityEvent OnCellSwapped = new UnityEvent();
+    public UnityEvent OnCellSwapFinished = new UnityEvent();
+    public UnityEvent OnCellFallDownFinished = new UnityEvent();
     public UnityEvent OnCellExplode = new UnityEvent();
 
     [SerializeField] private ListGameObjectVariable _cellsList;
-    [SerializeField] private IntVariable _clickedCellIndex; // Clicked cell index
     [SerializeField] private GameConfigs _gameConfigs;
 
-    private List<GameObject> _movedCells = new List<GameObject>();
+    private List<GameObject> _emptyCellsToStartFallDown = new List<GameObject>();
+    private List<GameObject> _cellsThatIsFallingDown = new List<GameObject>();
+    private List<GameObject> _swappedCells = new List<GameObject>();
+    private bool _canReceiveInput = true;
+    private GameObject _selectedCell = null;
 
     // Start is called before the first frame update
     protected override void Awake()
     {
         base.Awake();
-        _clickedCellIndex.Value = -1;
     }
 
     // Update is called once per frame
     private void Update()
     {
-        HandleInput();
+        if (_canReceiveInput)
+            HandleInput();
     }
 
     private void HandleInput()
@@ -43,55 +47,52 @@ public class CellsManager : Singleton<CellsManager>
         var hit = Physics2D.Raycast(mouseRay.origin, mouseRay.direction, Vector2.Distance(transform.position, mouseRay.origin), ~layer); // ~layer mean we ignore all other layer except Cell's layer
         if (!hit)
         {
-            if (_clickedCellIndex.Value >= 0)
+            if (_selectedCell)
             {
-                OnDeselectCell?.Invoke();
-                //StopSelectedCellSpriteFadingEffect();
+                _selectedCell.GetComponent<Cell>().StopFade();
             }
-            _clickedCellIndex.Value = -1;
+            _selectedCell = null;
             return;
         }
 
-        int newClickedCellIndex = _cellsList.Value.IndexOf(hit.transform.gameObject);
+        var newSelectedCell = hit.transform.gameObject;
 
         // player haven't selected any cell
-        if (_clickedCellIndex.Value == -1)
+        if (!_selectedCell)
         {
-            _clickedCellIndex.Value = newClickedCellIndex;
-            OnSelectCell?.Invoke();
-            //LeanTween.resume(_leanTweenFadingEffectID);
+            _selectedCell = newSelectedCell;
+            _selectedCell.GetComponent<Cell>().StartFade();
             return;
         }
 
         // play selected the same cell they have selected in previous
-        if (_clickedCellIndex.Value == newClickedCellIndex)
+        if (newSelectedCell == _selectedCell)
         {
-            //StopSelectedCellSpriteFadingEffect();
-            OnDeselectCell?.Invoke();
-            _clickedCellIndex.Value = -1;
+            _selectedCell.GetComponent<Cell>().StopFade();
+            _selectedCell = null;
             return;
         }
 
         // the cell player just select is the same as previous selected cell
-        if (!AreNeighbors(_clickedCellIndex.Value, newClickedCellIndex))
+        if (!AreNeighbors(_selectedCell, newSelectedCell))
         {
-            OnDeselectCell?.Invoke();
-            _clickedCellIndex.Value = newClickedCellIndex;
-            OnSelectCell?.Invoke();
+            _selectedCell.GetComponent<Cell>().StopFade();
+            _selectedCell = newSelectedCell;
+            _selectedCell.GetComponent<Cell>().StartFade();
+
             return;
         }
 
-        var oldSelectedCell = _cellsList.Value[_clickedCellIndex.Value];
-        var newSelectedCell = _cellsList.Value[newClickedCellIndex];
-        _clickedCellIndex.Value = -1;
-        // raise this event before swapping because we don't want the selected cell to fade while swapping
-        OnDeselectCell?.Invoke();
-        SwapCell(oldSelectedCell, newSelectedCell);
+        _selectedCell.GetComponent<Cell>().StopFade();
+        SwapCell(_selectedCell, newSelectedCell);
+        _selectedCell = null;
     }
 
     // return true if A and B are neighbor to each other
-    private bool AreNeighbors(int indexA, int indexB)
+    private bool AreNeighbors(GameObject cellA, GameObject cellB)
     {
+        int indexA = _cellsList.Value.IndexOf(cellA);
+        int indexB = _cellsList.Value.IndexOf(cellB);
         int up = indexA + _gameConfigs.Columns;
         int down = indexA - _gameConfigs.Columns;
         int left = indexA - 1;
@@ -109,161 +110,275 @@ public class CellsManager : Singleton<CellsManager>
     }
 
     // Swap cell world pos and their index in the cells list
-    public void SwapCell(GameObject cellA, GameObject cellB, bool raiseEventOnFinished = true)
+    private void SwapCell(GameObject cellA, GameObject cellB)
     {
-        var duration = Vector2.Distance(cellA.transform.position, cellB.transform.position) / _gameConfigs.CellMoveSpeed;
-        LeanTween.move(cellA, cellB.transform.position, duration).setEase(LeanTweenType.easeInCubic);
-        LeanTween.move(cellB, cellA.transform.position, duration).setEase(LeanTweenType.easeInCubic).setOnComplete(() =>
+        _canReceiveInput = false;
+        _swappedCells.Add(cellA);
+        _swappedCells.Add(cellB);
+        var cellACmp = cellA.GetComponent<Cell>();
+        var cellBCmp = cellB.GetComponent<Cell>();
+        cellACmp.Move(cellB.transform.position);
+        cellBCmp.Move(cellA.transform.position);
+        void onFinished()
         {
-            SwapCellIndex(cellA, cellB);
-            if (raiseEventOnFinished)
-            {
-                _movedCells.Add(cellA);
-                _movedCells.Add(cellB);
-                OnCellSwapped?.Invoke();
-            }
-        });
+            _canReceiveInput = true;
+            OnCellSwapFinishedResponse();
+            cellACmp.OnMoveFinished.RemoveListener(onFinished);
+        };
+        cellACmp.OnMoveFinished.AddListener(onFinished);
+        SwapCellIndex(cellA, cellB);
+        // var duration = Vector2.Distance(cellA.transform.position, cellB.transform.position) / _gameConfigs.CellMoveSpeed;
+        // cellA.transform.DOMove(cellB.transform.position, duration).SetEase(Ease.OutCubic);
+        // cellB.transform.DOMove(cellA.transform.position, duration).SetEase(Ease.OutCubic).OnComplete(() =>
+        //{
+        //    _canReceiveInput = true;
+        //    OnCellSwapFinishedResponse();
+        //});
     }
 
-    public void OnCellMovedResponse()
+    private void UndoSwapCell()
     {
-        var matchedCellIndices = new List<int>();
-        foreach (var cell in _movedCells)
+        _canReceiveInput = false;
+        var cellA = _swappedCells[0];
+        var cellB = _swappedCells[1];
+        _swappedCells.Clear();
+
+        var cellACmp = cellA.GetComponent<Cell>();
+        var cellBCmp = cellB.GetComponent<Cell>();
+        cellACmp.Move(cellB.transform.position);
+        cellBCmp.Move(cellA.transform.position);
+        void onFinished()
         {
-            var list = GetMatchedCellIndices(cell);
-            matchedCellIndices.AddRange(list);
+            _canReceiveInput = true;
+            cellBCmp.OnMoveFinished.RemoveListener(onFinished);
+        };
+        cellBCmp.OnMoveFinished.AddListener(onFinished);
+        SwapCellIndex(cellA, cellB);
+        //_cellsToCheckForMatch.Clear();
+        //SwapCellIndex(cellA, cellB);
+        //var duration = Vector2.Distance(cellA.transform.position, cellB.transform.position) / _gameConfigs.CellMoveSpeed;
+        //cellA.transform.DOMove(cellB.transform.position, duration).SetEase(Ease.OutCubic);
+        //cellB.transform.DOMove(cellA.transform.position, duration).SetEase(Ease.OutCubic).OnComplete(() =>
+        //{
+        //    _canReceiveInput = true;
+        //});
+    }
+
+    private void OnCellSwapFinishedResponse()
+    {
+        var matchedCells = new List<GameObject>();
+        foreach (var cell in _swappedCells)
+        {
+            var list = GetMatchedCells(cell);
+            matchedCells.AddRange(list);
         }
-        if (matchedCellIndices.Count < 3)
-            SwapCell(_movedCells[0], _movedCells[1], false); // Undo swap
+
+        if (matchedCells.Count < 3)
+        {
+            UndoSwapCell();
+        }
         else
         {
-            Explode(matchedCellIndices);
             //OnCellExplode?.Invoke();
-            Colapse(matchedCellIndices);
+            Explode(matchedCells);
+            FallDown();
         }
-        _movedCells.Clear();
     }
 
-    private void Colapse(List<int> indicies)
+    // fall down to fill up empty space
+    private void FallDown()
     {
-        indicies.Sort();
-        var queue = new Queue<int>(indicies);
-        int indexA;
-        int indexB = -1;
-
-        while (queue.Count > 0)
+        _canReceiveInput = false;
+        _cellsThatIsFallingDown.Clear();
+        foreach (var cell in _emptyCellsToStartFallDown)
         {
-            indexA = queue.Dequeue();
-            if (indexB == -1)
-                indexB = indexA + _gameConfigs.Columns;
-            else if (_cellsList.Value[indexA].transform.position.x == _cellsList.Value[indexB].transform.position.x)
-                indexB += _gameConfigs.Columns;
-            else
-                indexB = indexA + _gameConfigs.Columns;
+            int indexA = _cellsList.Value.IndexOf(cell);
+            int indexB = indexA + _gameConfigs.Columns;
+            var queue = new Queue<int>();
+            queue.Enqueue(indexA);
 
-            while (true)
+            while (queue.Count > 0)
             {
-                if (indexB >= _gameConfigs.NumCell)
-                {
-                    var cellA = _cellsList.Value[indexA];
-                    var cellARenderer = cellA.GetComponent<SpriteRenderer>();
-                    cellARenderer.sprite = CellGenerator.Instance.GetRandomCellSprite();
+                indexA = queue.Dequeue();
+                _cellsThatIsFallingDown.Add(_cellsList.Value[indexA]);
 
-                    var moveFrom = _cellsList.Value[indexB].transform.position;
-                    var moveTo = cellA.transform.position;
-                    cellA.transform.position = moveFrom;
-                    float duration = Vector2.Distance(moveFrom, moveTo) / _gameConfigs.CellMoveSpeed;
-                    LeanTween.move(cellA, moveTo, duration);
-                    break;
-                }
-
-                var cellB = _cellsList.Value[indexB];
-                var cellBRenderer = cellB.GetComponent<SpriteRenderer>();
-                if (cellBRenderer.sprite != null)
+                while (true)
                 {
-                    var cellA = _cellsList.Value[indexA];
-                    var cellARenderer = cellA.GetComponent<SpriteRenderer>();
-                    cellARenderer.sprite = cellBRenderer.sprite;
-                    cellBRenderer.sprite = null;
-                    queue.Enqueue(indexB);
+                    if (indexB >= _gameConfigs.NumCell)
+                    {
+                        var cellA = _cellsList.Value[indexA];
+                        var cellACmp = cellA.GetComponent<Cell>();
+                        cellACmp.AssignRandomSprite();
 
-                    var moveFrom = cellB.transform.position;
-                    var moveTo = cellA.transform.position;
-                    cellA.transform.position = moveFrom;
-                    float duration = Vector2.Distance(moveFrom, moveTo) / _gameConfigs.CellMoveSpeed;
-                    LeanTween.move(cellA, moveTo, duration);
-                    break;
-                }
-                else
-                {
-                    indexB += _gameConfigs.Columns;
+                        var moveFrom = _cellsList.Value[indexB].transform.position;
+                        var moveTo = cellA.transform.position;
+                        cellA.transform.position = moveFrom;
+                        cellACmp.Move(moveTo);
+                        void onFinished()
+                        {
+                            _cellsThatIsFallingDown.Remove(cellA);
+                            cellACmp.OnMoveFinished.RemoveListener(onFinished);
+                        }
+                        cellACmp.OnMoveFinished.AddListener(onFinished);
+                        indexB += _gameConfigs.Columns;
+                        break;
+                    }
+
+                    var cellB = _cellsList.Value[indexB];
+                    var cellBRenderer = cellB.GetComponent<SpriteRenderer>();
+                    if (cellBRenderer.sprite != null)
+                    {
+                        var cellA = _cellsList.Value[indexA];
+                        var cellACmp = cellA.GetComponent<Cell>();
+                        var cellARenderer = cellA.GetComponent<SpriteRenderer>();
+                        cellARenderer.sprite = cellBRenderer.sprite;
+                        cellBRenderer.sprite = null;
+                        queue.Enqueue(indexB);
+
+                        var moveFrom = cellB.transform.position;
+                        var moveTo = cellA.transform.position;
+                        cellA.transform.position = moveFrom;
+                        cellACmp.Move(moveTo);
+                        void onFinished()
+                        {
+                            _cellsThatIsFallingDown.Remove(cellA);
+                            cellACmp.OnMoveFinished.RemoveListener(onFinished);
+                        }
+                        cellACmp.OnMoveFinished.AddListener(onFinished);
+
+                        indexB += _gameConfigs.Columns;
+                        break;
+                    }
+                    else
+                    {
+                        queue.Enqueue(indexB);
+                        indexB += _gameConfigs.Columns;
+                    }
                 }
             }
         }
+        _emptyCellsToStartFallDown.Clear();
+        StartCoroutine(DoCheckFallDownFinished());
     }
 
-    private void Explode(List<int> indicies)
+    private IEnumerator DoCheckFallDownFinished()
     {
-        foreach (var index in indicies)
+        while (_cellsThatIsFallingDown.Count > 0)
         {
-            var cell = _cellsList.Value[index];
+            yield return null;
+        }
+        //OnCellFallDownFinished?.Invoke();
+        OnCellFallDownFinishedResponse();
+    }
+
+    private void OnCellFallDownFinishedResponse()
+    {
+        //TODO: check all cell to blow up
+
+        _canReceiveInput = true;
+    }
+
+    private void Explode(List<GameObject> matchedCellIndicies)
+    {
+        foreach (var cell in matchedCellIndicies)
+        {
             var renderer = cell.GetComponent<SpriteRenderer>();
             renderer.sprite = null;
         }
     }
 
-    private List<int> GetMatchedCellIndices(GameObject cell)
+    private List<GameObject> GetMatchedCells(GameObject cell)
     {
-        var indices = new List<int>();
+        var cells = new List<GameObject>();
         int index = _cellsList.Value.IndexOf(cell);
+        var buffer = new List<GameObject>();
+        var sprite = cell.GetComponent<SpriteRenderer>().sprite;
 
-        var buffer = new HashSet<int>();
-        // UP
-        while (index < _gameConfigs.NumCell
-            && _cellsList.Value[index].GetComponent<SpriteRenderer>().sprite.Equals(cell.GetComponent<SpriteRenderer>().sprite))
+        int temp = index;
+        float yCoord = cell.transform.position.y;
+
+        // LEFT
+        while (temp >= 0
+            && Mathf.Approximately(_cellsList.Value[temp].transform.position.y, yCoord)
+            && _cellsList.Value[temp].GetComponent<SpriteRenderer>().sprite == sprite)
         {
-            buffer.Add(index);
-            index += _gameConfigs.Columns;
+            if (temp != index)
+                buffer.Add(_cellsList.Value[temp]);
+            temp--;
         }
+
         // reset value
-        index = _cellsList.Value.IndexOf(cell);
-        // DOWN
-        while (index >= 0
-            && _cellsList.Value[index].GetComponent<SpriteRenderer>().sprite.Equals(cell.GetComponent<SpriteRenderer>().sprite))
+        temp = index;
+        // RIGHT
+        while (temp < _gameConfigs.NumCell
+            && Mathf.Approximately(_cellsList.Value[temp].transform.position.y, yCoord)
+            && _cellsList.Value[temp].GetComponent<SpriteRenderer>().sprite == sprite)
         {
-            buffer.Add(index);
-            index -= _gameConfigs.Columns;
+            if (temp != index)
+                buffer.Add(_cellsList.Value[temp]);
+            temp++;
         }
+
         // 3-match
-        if (buffer.Count > 2)
-            indices.AddRange(buffer);
+        if (buffer.Count >= 2)
+        {
+            cells.AddRange(buffer);
+            _emptyCellsToStartFallDown.AddRange(buffer);
+        }
 
         // reset value
         buffer.Clear();
-        index = _cellsList.Value.IndexOf(cell);
-        float yCoord = cell.transform.position.y;
-        // LEFT
-        while (index >= 0
-            && _cellsList.Value[index].transform.position.y == yCoord
-            && _cellsList.Value[index].GetComponent<SpriteRenderer>().sprite.Equals(cell.GetComponent<SpriteRenderer>().sprite))
+        temp = index;
+        // UP
+        while (temp < _gameConfigs.NumCell
+            && _cellsList.Value[temp].GetComponent<SpriteRenderer>().sprite == sprite)
         {
-            buffer.Add(index);
-            index--;
+            if (temp != index)
+                buffer.Add(_cellsList.Value[temp]);
+            temp += _gameConfigs.Columns;
         }
-        // reset value
-        index = _cellsList.Value.IndexOf(cell);
-        // RIGHT
-        while (index < _gameConfigs.NumCell
-            && _cellsList.Value[index].transform.position.y == yCoord
-            && _cellsList.Value[index].GetComponent<SpriteRenderer>().sprite.Equals(cell.GetComponent<SpriteRenderer>().sprite))
-        {
-            buffer.Add(index);
-            index++;
-        }
-        // 3-match
-        if (buffer.Count > 2)
-            indices.AddRange(buffer);
 
-        return indices;
+        // reset value
+        temp = index;
+        // DOWN
+        while (temp >= 0
+            && _cellsList.Value[temp].GetComponent<SpriteRenderer>().sprite == sprite)
+        {
+            if (temp != index)
+                buffer.Add(_cellsList.Value[temp]);
+            temp -= _gameConfigs.Columns;
+        }
+
+        // 3-match
+        if (buffer.Count >= 2)
+        {
+            cells.AddRange(buffer);
+        }
+        cells.Add(cell);
+        if (cells.Count < 3)
+            cells.Clear();
+
+        if (buffer.Count > 0)
+        {
+            var bottomCell = buffer[buffer.Count - 1];
+            if (!Mathf.Approximately(cell.transform.position.x, bottomCell.transform.position.x))
+            {
+                _emptyCellsToStartFallDown.Add(bottomCell);
+                _emptyCellsToStartFallDown.Add(cell);
+            }
+            else
+            {
+                if (index < _cellsList.Value.IndexOf(bottomCell))
+                    _emptyCellsToStartFallDown.Add(cell);
+                else
+                    _emptyCellsToStartFallDown.Add(bottomCell);
+            }
+        }
+        else
+        {
+            _emptyCellsToStartFallDown.Add(cell);
+        }
+
+        return cells;
     }
 }

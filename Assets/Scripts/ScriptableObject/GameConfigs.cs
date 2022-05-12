@@ -31,6 +31,9 @@ public class GameConfigs : ScriptableObject
 
     [SerializeField] private string _cellLayer;
     [SerializeField] private float _cellMoveSpeed;
+    [SerializeField] private float _swapDuration;
+    [SerializeField] private float _cellFadeTo;
+    [SerializeField] private float _cellFadeDuraion;
 
     #endregion Cell Settings
 
@@ -42,5 +45,8 @@ public class GameConfigs : ScriptableObject
     public Vector2 CellDimension => _cellDimension;
     public string CellLayer => _cellLayer;
     public float CellMoveSpeed => _cellMoveSpeed;
+    public float SwapDuration => _swapDuration;
     public int NumCell => _columns * _rows;
+    public float CellFadeTo => _cellFadeTo;
+    public float CellFadeDuration => _cellFadeDuraion;
 }

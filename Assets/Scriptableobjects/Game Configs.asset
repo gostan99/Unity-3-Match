@@ -25,7 +25,7 @@ MonoBehaviour:
   - {fileID: 21300000, guid: e4ae9c499c44d58419f493e1e340b7fb, type: 3}
   - {fileID: 21300000, guid: a602da00c0a10294688d2c7fe7206edb, type: 3}
   - {fileID: 21300000, guid: f9e428151009ab941854bf19a6c3dd19, type: 3}
-  - {fileID: 21300000, guid: c2bff25c1a8d6dd4ea5c2be6b8d6238a, type: 3}
   _cellDimension: {x: 0.32, y: 0.32}
   _cellLayer: Cell
-  _cellMoveSpeed: 1.6
+  _cellMoveSpeed: 0.3
+  _swapDuration: 0.2

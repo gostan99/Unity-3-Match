@@ -6,6 +6,7 @@ public class CellGenerator : Singleton<CellGenerator>
 {
     [SerializeField] private ListGameObjectVariable _cellsList;
     [SerializeField] private GameConfigs _gameConfigs;
+    [SerializeField] private GameObject _cellPrefab;
 
     protected override void Awake()
     {
@@ -39,21 +40,17 @@ public class CellGenerator : Singleton<CellGenerator>
                 if (row < _gameConfigs.Rows)
                 {
                     // Instantiate cell
-                    var cell = new GameObject();
-                    var collider = cell.AddComponent<BoxCollider2D>(); // for Raycast2D
-                    var cellRenderer = cell.AddComponent<SpriteRenderer>();
+                    var cell = Instantiate(_cellPrefab);
+                    var cellCmp = cell.GetComponent<Cell>();
                     var cellPos = new Vector3(transform.position.x + _gameConfigs.CellDimension.x * col, transform.position.y + _gameConfigs.CellDimension.y * row, transform.position.z);
+                    cellCmp.Init();
                     cell.transform.position = cellPos;
-                    cell.layer = LayerMask.NameToLayer(_gameConfigs.CellLayer); // for raycasting
-                    collider.size = _gameConfigs.CellDimension;
-                    cellRenderer.sortingOrder = 1;
-                    cellRenderer.sprite = GetRandomCellSprite();
                     _cellsList.Value.Add(cell);
-                    cell.name = "Cell" + (_gameConfigs.NumCell - 1);
+                    cell.name = "Cell" + (_cellsList.Value.Count - 1);
 
                     // Instantiate cell background
                     var cellBackground = new GameObject();
-                    cellBackground.name = "BG" + (_gameConfigs.NumCell - 1);
+                    cellBackground.name = "BG" + (_cellsList.Value.Count - 1);
                     cellBackground.transform.position = cellPos;
                     var bgRenderer = cellBackground.AddComponent<SpriteRenderer>();
                     bgRenderer.sortingOrder = 0;
@@ -71,16 +68,10 @@ public class CellGenerator : Singleton<CellGenerator>
                     //cellRenderer.sprite = _gameConfigs.CellBackground;
                     //cellRenderer.color = _gameConfigs.CellBackgroundColors[colorIndex++ % _gameConfigs.CellBackgroundColors.Length];
                     _cellsList.Value.Add(obj);
-                    obj.name = "SpawnPosition" + (_gameConfigs.NumCell - 1);
+                    obj.name = "SpawnPosition" + (_cellsList.Value.Count - 1);
                 }
             }
             colorIndex++;
         }
-    }
-
-    public Sprite GetRandomCellSprite()
-    {
-        int index = Random.Range(0, _gameConfigs.CellSprites.Length);
-        return _gameConfigs.CellSprites[index];
     }
 }
