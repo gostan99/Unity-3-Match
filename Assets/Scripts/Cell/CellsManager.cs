@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
+using static Cell;
 
 public class CellsManager : Singleton<CellsManager>
 {
@@ -15,8 +16,6 @@ public class CellsManager : Singleton<CellsManager>
     [SerializeField] private ListGameObjectVariable _cellsList;
     [SerializeField] private GameConfigs _gameConfigs;
 
-    private List<GameObject> _emptyCellsToStartFallDown = new List<GameObject>();
-    private List<GameObject> _cellsThatIsFallingDown = new List<GameObject>();
     private List<GameObject> _swappedCells = new List<GameObject>();
     private bool _canReceiveInput = true;
     private GameObject _selectedCell = null;
@@ -30,6 +29,8 @@ public class CellsManager : Singleton<CellsManager>
     // Update is called once per frame
     private void Update()
     {
+        if (_selectedCell)
+            Debug.Log(_cellsList.Value.IndexOf(_selectedCell));
         if (_canReceiveInput)
             HandleInput();
     }
@@ -101,32 +102,29 @@ public class CellsManager : Singleton<CellsManager>
         return indexB == up || indexB == down || indexB == left || indexB == right;
     }
 
-    private void SwapCellIndex(GameObject cellA, GameObject cellB)
-    {
-        int indexA = _cellsList.Value.IndexOf(cellA);
-        int indexB = _cellsList.Value.IndexOf(cellB);
-        _cellsList.Value[indexA] = cellB;
-        _cellsList.Value[indexB] = cellA;
-    }
-
     // Swap cell world pos and their index in the cells list
     private void SwapCell(GameObject cellA, GameObject cellB)
     {
         _canReceiveInput = false;
         _swappedCells.Add(cellA);
         _swappedCells.Add(cellB);
+
+        SwapIndex(cellA, cellB);
+
+        var cellAMoveTo = cellB.transform.position;
+        var cellBMoveTo = cellA.transform.position;
+
         var cellACmp = cellA.GetComponent<Cell>();
         var cellBCmp = cellB.GetComponent<Cell>();
-        cellACmp.Move(cellB.transform.position);
-        cellBCmp.Move(cellA.transform.position);
+        cellACmp.Move(cellAMoveTo);
+        cellBCmp.Move(cellBMoveTo);
         void onFinished()
         {
             _canReceiveInput = true;
             OnCellSwapFinishedResponse();
-            cellACmp.OnMoveFinished.RemoveListener(onFinished);
+            cellBCmp.OnMoveFinished -= onFinished;
         };
-        cellACmp.OnMoveFinished.AddListener(onFinished);
-        SwapCellIndex(cellA, cellB);
+        cellBCmp.OnMoveFinished += onFinished;
         // var duration = Vector2.Distance(cellA.transform.position, cellB.transform.position) / _gameConfigs.CellMoveSpeed;
         // cellA.transform.DOMove(cellB.transform.position, duration).SetEase(Ease.OutCubic);
         // cellB.transform.DOMove(cellA.transform.position, duration).SetEase(Ease.OutCubic).OnComplete(() =>
@@ -136,24 +134,38 @@ public class CellsManager : Singleton<CellsManager>
         //});
     }
 
+    private void SwapIndex(GameObject cellA, GameObject cellB)
+    {
+        int indexA = _cellsList.Value.IndexOf(cellA);
+        int indexB = _cellsList.Value.IndexOf(cellB);
+
+        _cellsList.Value[indexA] = cellB;
+        _cellsList.Value[indexB] = cellA;
+    }
+
     private void UndoSwapCell()
     {
         _canReceiveInput = false;
         var cellA = _swappedCells[0];
         var cellB = _swappedCells[1];
+
         _swappedCells.Clear();
+        SwapIndex(cellA, cellB);
+
+        var cellAMoveTo = cellB.transform.position;
+        var cellBMoveTo = cellA.transform.position;
 
         var cellACmp = cellA.GetComponent<Cell>();
         var cellBCmp = cellB.GetComponent<Cell>();
-        cellACmp.Move(cellB.transform.position);
-        cellBCmp.Move(cellA.transform.position);
+        cellACmp.Move(cellAMoveTo);
+        cellBCmp.Move(cellBMoveTo);
+
         void onFinished()
         {
             _canReceiveInput = true;
-            cellBCmp.OnMoveFinished.RemoveListener(onFinished);
+            cellBCmp.OnMoveFinished -= onFinished;
         };
-        cellBCmp.OnMoveFinished.AddListener(onFinished);
-        SwapCellIndex(cellA, cellB);
+        cellBCmp.OnMoveFinished += onFinished;
         //_cellsToCheckForMatch.Clear();
         //SwapCellIndex(cellA, cellB);
         //var duration = Vector2.Distance(cellA.transform.position, cellB.transform.position) / _gameConfigs.CellMoveSpeed;
@@ -179,6 +191,7 @@ public class CellsManager : Singleton<CellsManager>
         }
         else
         {
+            _swappedCells.Clear();
             //OnCellExplode?.Invoke();
             Explode(matchedCells);
             FallDown();
@@ -188,93 +201,50 @@ public class CellsManager : Singleton<CellsManager>
     // fall down to fill up empty space
     private void FallDown()
     {
-        _canReceiveInput = false;
-        _cellsThatIsFallingDown.Clear();
-        foreach (var cell in _emptyCellsToStartFallDown)
+        var emptyList = new List<GameObject>();
+        for (int i = 0; i < _gameConfigs.NumCell; i++)
         {
-            int indexA = _cellsList.Value.IndexOf(cell);
-            int indexB = indexA + _gameConfigs.Columns;
-            var queue = new Queue<int>();
-            queue.Enqueue(indexA);
-
-            while (queue.Count > 0)
+            var cell = _cellsList.Value[i];
+            var renderer = cell.GetComponent<SpriteRenderer>();
+            if (renderer.sprite is null)
             {
-                indexA = queue.Dequeue();
-                _cellsThatIsFallingDown.Add(_cellsList.Value[indexA]);
-
-                while (true)
+                int upper = i + _gameConfigs.Columns;
+                while (upper < _cellsList.Value.Count)
                 {
-                    if (indexB >= _gameConfigs.NumCell)
+                    var upperCell = _cellsList.Value[upper];
+                    var upperRenderer = upperCell.GetComponent<SpriteRenderer>();
+                    if (upperRenderer.sprite != null)
                     {
-                        var cellA = _cellsList.Value[indexA];
-                        var cellACmp = cellA.GetComponent<Cell>();
-                        cellACmp.AssignRandomSprite();
+                        renderer.sprite = upperRenderer.sprite;
+                        upperRenderer.sprite = null;
 
-                        var moveFrom = _cellsList.Value[indexB].transform.position;
-                        var moveTo = cellA.transform.position;
-                        cellA.transform.position = moveFrom;
-                        cellACmp.Move(moveTo);
-                        void onFinished()
-                        {
-                            _cellsThatIsFallingDown.Remove(cellA);
-                            cellACmp.OnMoveFinished.RemoveListener(onFinished);
-                        }
-                        cellACmp.OnMoveFinished.AddListener(onFinished);
-                        indexB += _gameConfigs.Columns;
+                        if (upper >= _gameConfigs.NumCell)
+                            emptyList.Add(upperCell);
+
+                        var moveTo = cell.transform.position;
+                        var cellCmp = cell.GetComponent<Cell>();
+                        cell.transform.position = upperCell.transform.position;
+                        cellCmp.Move(moveTo);
+
                         break;
                     }
-
-                    var cellB = _cellsList.Value[indexB];
-                    var cellBRenderer = cellB.GetComponent<SpriteRenderer>();
-                    if (cellBRenderer.sprite != null)
-                    {
-                        var cellA = _cellsList.Value[indexA];
-                        var cellACmp = cellA.GetComponent<Cell>();
-                        var cellARenderer = cellA.GetComponent<SpriteRenderer>();
-                        cellARenderer.sprite = cellBRenderer.sprite;
-                        cellBRenderer.sprite = null;
-                        queue.Enqueue(indexB);
-
-                        var moveFrom = cellB.transform.position;
-                        var moveTo = cellA.transform.position;
-                        cellA.transform.position = moveFrom;
-                        cellACmp.Move(moveTo);
-                        void onFinished()
-                        {
-                            _cellsThatIsFallingDown.Remove(cellA);
-                            cellACmp.OnMoveFinished.RemoveListener(onFinished);
-                        }
-                        cellACmp.OnMoveFinished.AddListener(onFinished);
-
-                        indexB += _gameConfigs.Columns;
-                        break;
-                    }
-                    else
-                    {
-                        queue.Enqueue(indexB);
-                        indexB += _gameConfigs.Columns;
-                    }
+                    upper += _gameConfigs.Columns;
+                }
+                if (upper >= _gameConfigs.NumCell)
+                {
+                    //cell.GetComponent<Cell>().AssignRandomSprite();
                 }
             }
         }
-        _emptyCellsToStartFallDown.Clear();
-        StartCoroutine(DoCheckFallDownFinished());
-    }
 
-    private IEnumerator DoCheckFallDownFinished()
-    {
-        while (_cellsThatIsFallingDown.Count > 0)
+        foreach (var cell in emptyList)
         {
-            yield return null;
+            cell.GetComponent<Cell>().AssignRandomSprite();
         }
-        //OnCellFallDownFinished?.Invoke();
-        OnCellFallDownFinishedResponse();
     }
 
     private void OnCellFallDownFinishedResponse()
     {
-        //TODO: check all cell to blow up
-
         _canReceiveInput = true;
     }
 
@@ -323,7 +293,6 @@ public class CellsManager : Singleton<CellsManager>
         if (buffer.Count >= 2)
         {
             cells.AddRange(buffer);
-            _emptyCellsToStartFallDown.AddRange(buffer);
         }
 
         // reset value
@@ -356,27 +325,8 @@ public class CellsManager : Singleton<CellsManager>
         }
         cells.Add(cell);
         if (cells.Count < 3)
+        {
             cells.Clear();
-
-        if (buffer.Count > 0)
-        {
-            var bottomCell = buffer[buffer.Count - 1];
-            if (!Mathf.Approximately(cell.transform.position.x, bottomCell.transform.position.x))
-            {
-                _emptyCellsToStartFallDown.Add(bottomCell);
-                _emptyCellsToStartFallDown.Add(cell);
-            }
-            else
-            {
-                if (index < _cellsList.Value.IndexOf(bottomCell))
-                    _emptyCellsToStartFallDown.Add(cell);
-                else
-                    _emptyCellsToStartFallDown.Add(bottomCell);
-            }
-        }
-        else
-        {
-            _emptyCellsToStartFallDown.Add(cell);
         }
 
         return cells;

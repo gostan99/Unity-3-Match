@@ -43,51 +43,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e06e41f9f187a4e48804bb50af0ad99b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  OnSelectCell:
+  OnCellSwapFinished:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 11400000, guid: da525699054933f40a084e44c627f5e1, type: 2}
-        m_MethodName: OnSelectCell
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-  OnDeselectCell:
+      m_Calls: []
+  OnCellFallDownFinished:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 11400000, guid: da525699054933f40a084e44c627f5e1, type: 2}
-        m_MethodName: OnDeselectCell
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-  OnCellMoveFinished:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 443633421577490528}
-        m_MethodName: OnCellMoveFinishedResponse
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
   OnCellExplode:
     m_PersistentCalls:
       m_Calls: []
   _cellsList: {fileID: 11400000, guid: cf7fef638bc802d46a377748235ed2a8, type: 2}
-  _clickedCellIndex: {fileID: 11400000, guid: 658eca86b99ecfd47b9b3c8df44e9f88, type: 2}
   _gameConfigs: {fileID: 11400000, guid: b7f3af89663b9a843b928b5247e735bc, type: 2}
+  _fallingDownCells: {fileID: 11400000, guid: 86ce7b9c4561047498fcf4e823a5f497, type: 2}

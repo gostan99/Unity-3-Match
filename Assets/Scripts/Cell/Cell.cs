@@ -6,14 +6,12 @@ using UnityEngine.Events;
 
 public class Cell : MonoBehaviour
 {
-    public UnityEvent OnMoveFinished = new UnityEvent();
+    public delegate void OnMoveFinishedDelegate();
+
+    public event OnMoveFinishedDelegate OnMoveFinished;
 
     [SerializeField] private GameConfigs _gameConfigs;
-    private bool _isMoving = false;
     private int _tweenFadeId;
-    private int _tweenMoveId;
-
-    public bool IsMoving => _isMoving;
 
     // Start is called before the first frame update
     private void Start()
@@ -31,22 +29,35 @@ public class Cell : MonoBehaviour
         var cellRenderer = gameObject.AddComponent<SpriteRenderer>();
         gameObject.layer = LayerMask.NameToLayer(_gameConfigs.CellLayer); // for raycasting
         collider.size = _gameConfigs.CellDimension;
-        collider.isTrigger = true;
         cellRenderer.sortingOrder = 1;
         cellRenderer.sprite = GetRandomCellSprite();
     }
 
     public void Move(Vector3 target)
     {
-        //if (_isMoving) return;
-
-        //_isMoving = true;
-        float duration = Vector3.Distance(transform.position, target) / _gameConfigs.CellMoveSpeed;
-        transform.DOMove(target, duration).OnComplete(() =>
+        var duration = Vector2.Distance(transform.position, target) / _gameConfigs.CellMoveSpeed;
+        transform.DOMove(target, duration).SetEase(Ease.OutCubic).OnComplete(() =>
         {
-            //_isMoving = false;
             OnMoveFinished?.Invoke();
         });
+
+        //StartCoroutine(IMove(target));
+    }
+
+    private IEnumerator IMove(Vector3 target)
+    {
+        var direction = (target - transform.position).normalized;
+        while (true)
+        {
+            transform.position += _gameConfigs.CellMoveSpeed * Time.deltaTime * direction;
+
+            var angle = Vector2.Angle(target - transform.position, direction);
+            if (angle != 0)
+                break;
+            yield return null;
+        }
+        transform.position = target;
+        OnMoveFinished?.Invoke();
     }
 
     public void StartFade()

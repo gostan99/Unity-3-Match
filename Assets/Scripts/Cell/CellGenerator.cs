@@ -37,39 +37,23 @@ public class CellGenerator : Singleton<CellGenerator>
         {
             for (int col = 0; col < _gameConfigs.Columns; col++)
             {
-                if (row < _gameConfigs.Rows)
-                {
-                    // Instantiate cell
-                    var cell = Instantiate(_cellPrefab);
-                    var cellCmp = cell.GetComponent<Cell>();
-                    var cellPos = new Vector3(transform.position.x + _gameConfigs.CellDimension.x * col, transform.position.y + _gameConfigs.CellDimension.y * row, transform.position.z);
-                    cellCmp.Init();
-                    cell.transform.position = cellPos;
-                    _cellsList.Value.Add(cell);
-                    cell.name = "Cell" + (_cellsList.Value.Count - 1);
+                // Instantiate cell
+                var cell = Instantiate(_cellPrefab);
+                var cellCmp = cell.GetComponent<Cell>();
+                var cellPos = new Vector3(transform.position.x + _gameConfigs.CellDimension.x * col, transform.position.y + _gameConfigs.CellDimension.y * row, transform.position.z);
+                cellCmp.Init();
+                cell.transform.position = cellPos;
+                _cellsList.Value.Add(cell);
+                cell.name = "Cell" + (_cellsList.Value.Count - 1);
 
-                    // Instantiate cell background
-                    var cellBackground = new GameObject();
-                    cellBackground.name = "BG" + (_cellsList.Value.Count - 1);
-                    cellBackground.transform.position = cellPos;
-                    var bgRenderer = cellBackground.AddComponent<SpriteRenderer>();
-                    bgRenderer.sortingOrder = 0;
-                    bgRenderer.sprite = _gameConfigs.CellBackground;
-                    bgRenderer.color = _gameConfigs.CellBackgroundColors[colorIndex++ % _gameConfigs.CellBackgroundColors.Length];
-                }
-                else
-                {
-                    // Instantiate cell's spawn position
-                    var obj = new GameObject();
-                    var cellPos = new Vector3(transform.position.x + _gameConfigs.CellDimension.x * col, transform.position.y + _gameConfigs.CellDimension.y * row, transform.position.z);
-                    obj.transform.position = cellPos;
-                    //var cellRenderer = obj.AddComponent<SpriteRenderer>();
-                    //cellRenderer.sortingOrder = 0;
-                    //cellRenderer.sprite = _gameConfigs.CellBackground;
-                    //cellRenderer.color = _gameConfigs.CellBackgroundColors[colorIndex++ % _gameConfigs.CellBackgroundColors.Length];
-                    _cellsList.Value.Add(obj);
-                    obj.name = "SpawnPosition" + (_cellsList.Value.Count - 1);
-                }
+                // Instantiate cell background
+                var cellBackground = new GameObject();
+                cellBackground.name = "BG" + (_cellsList.Value.Count - 1);
+                cellBackground.transform.position = cellPos;
+                var bgRenderer = cellBackground.AddComponent<SpriteRenderer>();
+                bgRenderer.sortingOrder = 0;
+                bgRenderer.sprite = _gameConfigs.CellBackground;
+                bgRenderer.color = _gameConfigs.CellBackgroundColors[colorIndex++ % _gameConfigs.CellBackgroundColors.Length];
             }
             colorIndex++;
         }
