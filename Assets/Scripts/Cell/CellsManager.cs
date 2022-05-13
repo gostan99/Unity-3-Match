@@ -21,6 +21,7 @@ public class CellsManager : Singleton<CellsManager>
     [SerializeField] private ListGameObjectVariable _cellsList;
     [SerializeField] private GameConfigs _gameConfigs;
     [SerializeField] private IntVariable _score;
+    [SerializeField] private GameObject _explosion;
 
     private List<GameObject> _swappedCells = new List<GameObject>();
     private bool _canReceiveInput = true;
@@ -300,6 +301,9 @@ public class CellsManager : Singleton<CellsManager>
         {
             var renderer = cell.GetComponent<SpriteRenderer>();
             renderer.sprite = null;
+
+            var explosion = Instantiate(_explosion);
+            explosion.transform.position = cell.transform.position;
         }
     }
 

@@ -43,15 +43,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e06e41f9f187a4e48804bb50af0ad99b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  OnCellSwapFinished:
-    m_PersistentCalls:
-      m_Calls: []
-  OnCellFallDownFinished:
-    m_PersistentCalls:
-      m_Calls: []
-  OnCellExplode:
-    m_PersistentCalls:
-      m_Calls: []
   _cellsList: {fileID: 11400000, guid: cf7fef638bc802d46a377748235ed2a8, type: 2}
   _gameConfigs: {fileID: 11400000, guid: b7f3af89663b9a843b928b5247e735bc, type: 2}
   _score: {fileID: 11400000, guid: 8b84374bde80b424082f9d8f563dff23, type: 2}
+  _explosion: {fileID: 6106238265744737954, guid: 5913be64f9095a040a2b84e8f3ab436f,
+    type: 3}
