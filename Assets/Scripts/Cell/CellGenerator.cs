@@ -11,11 +11,19 @@ public class CellGenerator : Singleton<CellGenerator>
     protected override void Awake()
     {
         base.Awake();
-        _cellsList.Value.Clear();
+    }
+
+    private void Start()
+    {
         Generate();
     }
 
-    private void Generate()
+    protected override void OnDestroy()
+    {
+        base.OnDestroy();
+    }
+
+    public void Generate(bool generateBg = true)
     {
         #region Assert
 
@@ -32,6 +40,7 @@ public class CellGenerator : Singleton<CellGenerator>
 
         #endregion Assert
 
+        _cellsList.Value.Clear();
         int colorIndex = 0;
         for (int row = 0; row < _gameConfigs.Rows * 2; row++) // _gameConfigs.Rows * 2: for fall down algorithm
         {
@@ -46,6 +55,7 @@ public class CellGenerator : Singleton<CellGenerator>
                 _cellsList.Value.Add(cell);
                 cell.name = "Cell" + (_cellsList.Value.Count - 1);
 
+                if (!generateBg) continue;
                 // Instantiate cell background
                 var cellBackground = new GameObject();
                 cellBackground.name = "BG" + (_cellsList.Value.Count - 1);

@@ -12,10 +12,23 @@ public class Cell : MonoBehaviour
 
     [SerializeField] private GameConfigs _gameConfigs;
     private int _tweenFadeId;
+    private int _tweenMoveId;
 
     // Start is called before the first frame update
     private void Start()
     {
+        GameManager.OnPause += OnPause;
+    }
+
+    private void OnPause()
+    {
+        //DOTween.Kill(_tweenFadeId);
+        //DOTween.Kill(_tweenMoveId);
+    }
+
+    private void OnDestroy()
+    {
+        GameManager.OnPause -= OnPause;
     }
 
     // Update is called once per frame
@@ -36,10 +49,10 @@ public class Cell : MonoBehaviour
     public void Move(Vector3 target)
     {
         var duration = Vector2.Distance(transform.position, target) / _gameConfigs.CellMoveSpeed;
-        transform.DOMove(target, duration).SetEase(Ease.OutCubic).OnComplete(() =>
-        {
-            OnMoveFinished?.Invoke();
-        });
+        _tweenMoveId = transform.DOMove(target, duration).SetEase(Ease.OutCubic).OnComplete(() =>
+         {
+             OnMoveFinished?.Invoke();
+         }).SetAutoKill(false).intId;
 
         //StartCoroutine(IMove(target));
     }

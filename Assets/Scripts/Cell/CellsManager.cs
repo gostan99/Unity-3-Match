@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.SceneManagement;
 using static Cell;
 
 public class CellsManager : Singleton<CellsManager>
@@ -12,6 +13,10 @@ public class CellsManager : Singleton<CellsManager>
     //public UnityEvent OnCellSwapFinished = new UnityEvent();
     //public UnityEvent OnCellFallDownFinished = new UnityEvent();
     //public UnityEvent OnCellExplode = new UnityEvent();
+
+    public delegate void OnNoCellCanBlowUpDelegate();
+
+    public static event OnNoCellCanBlowUpDelegate OnNoCellCanBlowUp;
 
     [SerializeField] private ListGameObjectVariable _cellsList;
     [SerializeField] private GameConfigs _gameConfigs;
@@ -21,6 +26,8 @@ public class CellsManager : Singleton<CellsManager>
     private bool _canReceiveInput = true;
     private GameObject _selectedCell = null;
 
+    private List<int> _canBlowUpIndicies = new List<int>();
+
     // Start is called before the first frame update
     protected override void Awake()
     {
@@ -29,8 +36,34 @@ public class CellsManager : Singleton<CellsManager>
 
     private void Start()
     {
-        var list = GetAllCellCanBlowUp();
-        Debug.Log($"Cell left to blow up is: {list.Count}");
+        GameManager.OnPause += OnPause;
+        _canReceiveInput = true;
+        StartCoroutine(IDoCheck());
+    }
+
+    private IEnumerator IDoCheck()
+    {
+        yield return new WaitForSeconds(0.5f);
+        _canBlowUpIndicies.Clear();
+        _canBlowUpIndicies.AddRange(GetAllCellCanBlowUp());
+        Debug.Log($"Cell left to blow up is: {_canBlowUpIndicies.Count}");
+        if (_canBlowUpIndicies.Count == 0) OnNoCellCanBlowUp?.Invoke();
+    }
+
+    protected override void OnDestroy()
+    {
+        GameManager.OnPause -= OnPause;
+        base.OnDestroy();
+    }
+
+    private void OnPause()
+    {
+        _canReceiveInput = false;
+    }
+
+    private void OnReset()
+    {
+        _canReceiveInput = true;
     }
 
     // Update is called once per frame
@@ -198,16 +231,17 @@ public class CellsManager : Singleton<CellsManager>
         }
         else
         {
-            int bonus = (matchedCells.Count - 3) * 10;
-            _score.Value += 100 + bonus;
+            int bonus = (matchedCells.Count - 3) * 50;
+            _score.Value += 150 + bonus;
             _swappedCells.Clear();
             //OnCellExplode?.Invoke();
             Explode(matchedCells);
             FallDown();
         }
-
-        var left = GetAllCellCanBlowUp();
-        Debug.Log($"Cell left to blow up is: {left.Count}");
+        _canBlowUpIndicies.Clear();
+        _canBlowUpIndicies.AddRange(GetAllCellCanBlowUp());
+        Debug.Log($"Cell left to blow up is: {_canBlowUpIndicies.Count}");
+        if (_canBlowUpIndicies.Count == 0) OnNoCellCanBlowUp?.Invoke();
     }
 
     // fall down to fill up empty space

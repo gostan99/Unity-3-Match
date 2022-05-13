@@ -13,6 +13,13 @@ public class Score : MonoBehaviour
     {
         _scoreText = GetComponent<TextMeshProUGUI>();
         _score.Value = 0;
+
+        GameManager.OnRestart += () => _score.Value = 0;
+    }
+
+    private void OnDestroy()
+    {
+        GameManager.OnRestart -= () => _score.Value = 0;
     }
 
     // Update is called once per frame
