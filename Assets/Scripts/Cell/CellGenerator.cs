@@ -33,7 +33,7 @@ public class CellGenerator : Singleton<CellGenerator>
         #endregion Assert
 
         int colorIndex = 0;
-        for (int row = 0; row < _gameConfigs.Rows * 2; row++)
+        for (int row = 0; row < _gameConfigs.Rows * 2; row++) // _gameConfigs.Rows * 2: for fall down algorithm
         {
             for (int col = 0; col < _gameConfigs.Columns; col++)
             {
