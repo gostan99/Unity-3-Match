@@ -48,6 +48,7 @@ public class CellsManager : Singleton<CellsManager>
         _canBlowUpIndicies.Clear();
         _canBlowUpIndicies.AddRange(GetAllCellCanBlowUp());
         Debug.Log($"Cell left to blow up is: {_canBlowUpIndicies.Count}");
+        _canBlowUpIndicies.ForEach(i => Debug.Log(i));
         if (_canBlowUpIndicies.Count == 0) OnNoCellCanBlowUp?.Invoke();
     }
 
@@ -242,6 +243,7 @@ public class CellsManager : Singleton<CellsManager>
         _canBlowUpIndicies.Clear();
         _canBlowUpIndicies.AddRange(GetAllCellCanBlowUp());
         Debug.Log($"Cell left to blow up is: {_canBlowUpIndicies.Count}");
+        _canBlowUpIndicies.ForEach(i => Debug.Log(i));
         if (_canBlowUpIndicies.Count == 0) OnNoCellCanBlowUp?.Invoke();
     }
 
@@ -318,15 +320,18 @@ public class CellsManager : Singleton<CellsManager>
         var buffer = new List<int>();
 
         // Horizontal
-        for (int i = 0; i < _gameConfigs.Rows; i++)
+        for (int i = 0; i < _gameConfigs.NumCell; i += _gameConfigs.Columns)
         {
+            indexA = i;
             cellA = _cellsList.Value[indexA];
             rendererA = cellA.GetComponent<SpriteRenderer>();
             buffer.Clear();
             buffer.Add(indexA);
             int indexB = indexA + 1;
 
-            while (indexB % _gameConfigs.Columns < _gameConfigs.Columns && indexB < _gameConfigs.NumCell)
+            while (indexB < _gameConfigs.NumCell
+                && indexB < i + _gameConfigs.Columns
+                )
             {
                 var cellB = _cellsList.Value[indexB];
                 var rendererB = cellB.GetComponent<SpriteRenderer>();
@@ -349,13 +354,12 @@ public class CellsManager : Singleton<CellsManager>
                 }
                 indexB++;
             }
-            indexA += _gameConfigs.Columns;
         }
 
-        indexA = 0;
         // Virtical
         for (int i = 0; i < _gameConfigs.Columns; i++)
         {
+            indexA = i;
             cellA = _cellsList.Value[indexA];
             rendererA = cellA.GetComponent<SpriteRenderer>();
             buffer.Clear();
@@ -385,7 +389,6 @@ public class CellsManager : Singleton<CellsManager>
                 }
                 indexB += _gameConfigs.Columns;
             }
-            indexA++;
         }
 
         return cells;
